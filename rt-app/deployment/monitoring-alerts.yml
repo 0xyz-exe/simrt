@@ -1,0 +1,343 @@
+# Prometheus Alerting Rules for RT Management System
+# File: /etc/prometheus/rules/rt-system.yml
+
+groups:
+  - name: rt-system.alerts
+    rules:
+      # Application Health Alerts
+      - alert: RTSystemDown
+        expr: up{job="rt-system"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          service: rt-system
+        annotations:
+          summary: "RT Management System is down"
+          description: "RT Management System has been down for more than 1 minute."
+
+      - alert: RTSystemHighLatency
+        expr: nginx_http_request_duration_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+          service: rt-system
+        annotations:
+          summary: "High response latency detected"
+          description: "95th percentile latency is above 2 seconds for 5 minutes."
+
+      - alert: RTSystemHighErrorRate
+        expr: rate(nginx_http_requests_total{status=~"5.."}[5m]) / rate(nginx_http_requests_total[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+          service: rt-system
+        annotations:
+          summary: "High error rate detected"
+          description: "Error rate is above 5% for 3 minutes."
+
+      # Database Alerts
+      - alert: DatabaseConnectionFailure
+        expr: mysql_up == 0 or postgresql_up == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: database
+        annotations:
+          summary: "Database connection failure"
+          description: "Unable to connect to database for more than 2 minutes."
+
+      - alert: DatabaseHighConnections
+        expr: mysql_global_status_threads_connected / mysql_global_variables_max_connections > 0.8
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High database connections"
+          description: "Database connections are above 80% of maximum."
+
+      - alert: DatabaseSlowQueries
+        expr: rate(mysql_global_status_slow_queries[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          service: database
+        annotations:
+          summary: "High rate of slow queries"
+          description: "Slow query rate is above 0.1 queries per second."
+
+      # System Resource Alerts
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 80% for 10 minutes."
+
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 85% for 5 minutes."
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 15
+        for: 5m
+        labels:
+          severity: warning
+          service: system
+        annotations:
+          summary: "Low disk space"
+          description: "Disk space is below 15% on {{ $labels.mountpoint }}."
+
+      - alert: DiskSpaceCritical
+        expr: (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"}) * 100 < 5
+        for: 1m
+        labels:
+          severity: critical
+          service: system
+        annotations:
+          summary: "Critical disk space"
+          description: "Disk space is below 5% on {{ $labels.mountpoint }}."
+
+      # Network Alerts
+      - alert: HighNetworkTraffic
+        expr: rate(node_network_receive_bytes_total[5m]) > 100000000 or rate(node_network_transmit_bytes_total[5m]) > 100000000
+        for: 10m
+        labels:
+          severity: warning
+          service: network
+        annotations:
+          summary: "High network traffic"
+          description: "Network traffic is above 100MB/s for 10 minutes."
+
+      # Security Alerts
+      - alert: TooManyFailedLogins
+        expr: increase(rt_failed_login_attempts_total[5m]) > 10
+        for: 1m
+        labels:
+          severity: warning
+          service: security
+        annotations:
+          summary: "Too many failed login attempts"
+          description: "More than 10 failed login attempts in 5 minutes."
+
+      - alert: SuspiciousActivity
+        expr: increase(rt_suspicious_requests_total[5m]) > 20
+        for: 1m
+        labels:
+          severity: critical
+          service: security
+        annotations:
+          summary: "Suspicious activity detected"
+          description: "More than 20 suspicious requests in 5 minutes."
+
+      # Backup Alerts
+      - alert: BackupFailed
+        expr: time() - rt_last_successful_backup_timestamp > 86400
+        for: 1h
+        labels:
+          severity: critical
+          service: backup
+        annotations:
+          summary: "Backup failure"
+          description: "No successful backup in the last 24 hours."
+
+      # SSL Certificate Alerts
+      - alert: SSLCertificateExpiringSoon
+        expr: probe_ssl_earliest_cert_expiry - time() < 604800
+        for: 1h
+        labels:
+          severity: warning
+          service: ssl
+        annotations:
+          summary: "SSL certificate expiring soon"
+          description: "SSL certificate will expire in less than 7 days."
+
+      - alert: SSLCertificateExpired
+        expr: probe_ssl_earliest_cert_expiry - time() <= 0
+        for: 1m
+        labels:
+          severity: critical
+          service: ssl
+        annotations:
+          summary: "SSL certificate expired"
+          description: "SSL certificate has expired."
+
+---
+
+# Alertmanager Configuration
+# File: /etc/alertmanager/alertmanager.yml
+
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@rt-system.your-domain.com'
+  smtp_auth_username: 'alerts@rt-system.your-domain.com'
+  smtp_auth_password: 'your-email-password'
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'web.hook'
+  routes:
+    - match:
+        severity: critical
+      receiver: 'critical-alerts'
+      repeat_interval: 30m
+    - match:
+        severity: warning
+      receiver: 'warning-alerts'
+      repeat_interval: 2h
+
+receivers:
+  - name: 'web.hook'
+    webhook_configs:
+      - url: 'http://localhost:8080/webhook'
+
+  - name: 'critical-alerts'
+    email_configs:
+      - to: 'admin@your-domain.com'
+        subject: '[CRITICAL] RT System Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          Alert: {{ .GroupLabels.alertname }}
+          Summary: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+          Description: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+
+          Time: {{ range .Alerts }}{{ .StartsAt }}{{ end }}
+
+          Please check the system immediately.
+    slack_configs:
+      - api_url: 'YOUR_SLACK_WEBHOOK_URL'
+        channel: '#alerts'
+        title: 'Critical Alert: {{ .GroupLabels.alertname }}'
+        text: |
+          *Alert:* {{ .GroupLabels.alertname }}
+          *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+          *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+
+  - name: 'warning-alerts'
+    email_configs:
+      - to: 'admin@your-domain.com'
+        subject: '[WARNING] RT System Alert: {{ .GroupLabels.alertname }}'
+        body: |
+          Alert: {{ .GroupLabels.alertname }}
+          Summary: {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+          Description: {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+
+          Time: {{ range .Alerts }}{{ .StartsAt }}{{ end }}
+
+inhibit_rules:
+  - source_match:
+      severity: 'critical'
+    target_match:
+      severity: 'warning'
+    equal: ['alertname', 'instance']
+
+---
+
+# Grafana Dashboard Alert Configurations
+# These can be imported into Grafana for visual alerts
+
+{
+  "dashboard": {
+    "title": "RT System Alerts Dashboard",
+    "panels": [
+      {
+        "title": "Active Alerts",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "legendFormat": "{{ alertname }}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": 0},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "title": "System Health Overview",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up{job=\"rt-system\"}",
+            "legendFormat": "RT System"
+          },
+          {
+            "expr": "up{job=\"node-exporter\"}",
+            "legendFormat": "Server"
+          },
+          {
+            "expr": "mysql_up or postgresql_up",
+            "legendFormat": "Database"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(nginx_http_requests_total{status=~\"5..\"}[5m])",
+            "legendFormat": "5xx Errors"
+          },
+          {
+            "expr": "rate(nginx_http_requests_total{status=~\"4..\"}[5m])",
+            "legendFormat": "4xx Errors"
+          }
+        ],
+        "yAxes": [
+          {
+            "min": 0,
+            "unit": "reqps"
+          }
+        ],
+        "alert": {
+          "conditions": [
+            {
+              "query": {
+                "queryType": "",
+                "refId": "A"
+              },
+              "reducer": {
+                "type": "last",
+                "params": []
+              },
+              "evaluator": {
+                "params": [0.05],
+                "type": "gt"
+              }
+            }
+          ],
+          "executionErrorState": "alerting",
+          "for": "3m",
+          "frequency": "10s",
+          "handler": 1,
+          "name": "High Error Rate",
+          "noDataState": "no_data",
+          "notifications": []
+        }
+      }
+    ]
+  }
+}

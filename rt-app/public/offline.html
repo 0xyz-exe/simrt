@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offline - RT Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse { animation: pulse 2s infinite; }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center px-4">
+    <div class="max-w-md w-full text-center">
+        <!-- Offline Icon -->
+        <div class="mb-6">
+            <div class="mx-auto w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center pulse">
+                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636l-3.536 3.536m0 5.656l3.536 3.536M9.172 9.172L5.636 5.636m3.536 9.192L5.636 18.364M12 2.23606L12 6.5M12 17.5L12 21.764M21.764 12L17.5 12M6.5 12L2.236 12"></path>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Message -->
+        <h1 class="text-2xl font-bold text-gray-800 mb-4">Tidak Ada Koneksi</h1>
+        <p class="text-gray-600 mb-8">
+            Anda sedang offline. Beberapa fitur mungkin tidak tersedia, tetapi Anda masih dapat mengakses data yang tersimpan sebelumnya.
+        </p>
+
+        <!-- Actions -->
+        <div class="space-y-4">
+            <button
+                onclick="checkConnection()"
+                class="w-full bg-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors"
+            >
+                Coba Lagi
+            </button>
+
+            <button
+                onclick="goOffline()"
+                class="w-full bg-gray-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-gray-700 transition-colors"
+            >
+                Lanjutkan Offline
+            </button>
+        </div>
+
+        <!-- Offline Features -->
+        <div class="mt-8 text-left">
+            <h3 class="font-semibold text-gray-800 mb-3">Fitur yang Tersedia Offline:</h3>
+            <ul class="text-sm text-gray-600 space-y-2">
+                <li class="flex items-center">
+                    <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Lihat data yang tersimpan
+                </li>
+                <li class="flex items-center">
+                    <svg class="w-4 h-4 text-green-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                    </svg>
+                    Buat catatan offline
+                </li>
+                <li class="flex items-center">
+                    <svg class="w-4 h-4 text-yellow-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    Data akan disinkron otomatis
+                </li>
+            </ul>
+        </div>
+
+        <!-- Connection Status -->
+        <div id="connectionStatus" class="mt-6 text-sm text-gray-500">
+            <span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+            Status: Offline
+        </div>
+    </div>
+
+    <script>
+        function checkConnection() {
+            if (navigator.onLine) {
+                // Try to reload the page
+                window.location.reload();
+            } else {
+                showToast('Masih tidak ada koneksi internet');
+            }
+        }
+
+        function goOffline() {
+            // Redirect to cached dashboard or last visited page
+            const lastPage = localStorage.getItem('lastVisitedPage') || '/admin/dashboard';
+            window.location.href = lastPage;
+        }
+
+        function updateConnectionStatus() {
+            const statusElement = document.getElementById('connectionStatus');
+            const isOnline = navigator.onLine;
+
+            if (isOnline) {
+                statusElement.innerHTML = '<span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-2"></span>Status: Online';
+                // Auto reload when back online
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                statusElement.innerHTML = '<span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-2"></span>Status: Offline';
+            }
+        }
+
+        function showToast(message) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-4 right-4 bg-red-500 text-white px-4 py-2 rounded-lg shadow-lg z-50';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Listen for connection changes
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+
+        // Initial status check
+        updateConnectionStatus();
+    </script>
+</body>
+</html>
