@@ -1,0 +1,35 @@
+# Dependencies
+/node_modules
+/vendor
+
+# Development
+.env
+.env.*
+!.env.example
+!.env.vercel
+
+# Build files
+/storage/logs
+/storage/framework/cache
+/storage/framework/sessions
+/storage/framework/testing
+/storage/framework/views
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+/tests
+phpunit.xml
+.phpunit.result.cache
+
+# Documentation
+*.md
+!README.md

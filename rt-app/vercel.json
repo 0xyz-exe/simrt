@@ -1,0 +1,55 @@
+{
+  "version": 2,
+  "framework": null,
+  "functions": {
+    "api/index.php": {
+      "runtime": "vercel-php@0.6.0"
+    }
+  },
+  "routes": [
+    {
+      "src": "/(css|js|images)/.*",
+      "dest": "public/$1"
+    },
+    {
+      "src": "/storage/(.*)",
+      "dest": "public/storage/$1"
+    },
+    {
+      "src": "/favicon.ico",
+      "dest": "public/favicon.ico"
+    },
+    {
+      "src": "/robots.txt",
+      "dest": "public/robots.txt"
+    },
+    {
+      "src": "/manifest.json",
+      "dest": "public/manifest.json"
+    },
+    {
+      "src": "/sw.js",
+      "dest": "public/sw.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "api/index.php"
+    }
+  ],
+  "env": {
+    "APP_ENV": "production",
+    "APP_DEBUG": "false",
+    "APP_URL": "https://your-app.vercel.app",
+    "LOG_CHANNEL": "stderr",
+    "LOG_STDERR_FORMATTER": "Monolog\\Formatter\\JsonFormatter",
+    "SESSION_DRIVER": "cookie",
+    "VIEW_COMPILED_PATH": "/tmp",
+    "SSR_TEMP_PATH": "/tmp",
+    "NODE_PATH": ".vercel/path0/node_modules/.bin"
+  },
+  "build": {
+    "env": {
+      "NODE_PATH": ".vercel/path0/node_modules/.bin"
+    }
+  }
+}
