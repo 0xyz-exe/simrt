@@ -120,7 +120,7 @@
         }
 
         /* Status bar spacing for iOS */
-        @supports (padding: max(0px)) {
+        @@supports (padding: env(safe-area-inset-top)) {
             .ios-padding {
                 padding-top: max(20px, env(safe-area-inset-top));
                 padding-bottom: max(20px, env(safe-area-inset-bottom));
