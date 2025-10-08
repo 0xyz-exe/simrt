@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RT Management System</title>
+    <meta name="description" content="Sistem Informasi Manajemen RT" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#1f2937" />
+    <link rel="icon" type="image/png" href="/icons/icon-72x72.png" />
+    <!-- Preload fonts or styles if any (adjust if you add fonts) -->
+    <!-- Vite build assets: When you run 'npm run build' in Laravel with laravel-vite-plugin, hashed files will be emitted to /public/build. -->
+    <!-- If you know the generated CSS file name you can hardcode; otherwise we attempt a dynamic loader below. -->
+    <style>
+        /* Simple loading screen */
+        html,body {margin:0;padding:0;height:100%;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f9fafb;color:#111827;}
+        .center {display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:2rem;}
+        .spinner {width:42px;height:42px;border:5px solid #e5e7eb;border-top-color:#2563eb;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:1rem;}
+        @keyframes spin {to {transform:rotate(360deg)}}
+        a.primary {display:inline-block;margin-top:1rem;background:#2563eb;color:#fff;padding:.65rem 1rem;border-radius:6px;text-decoration:none;font-weight:600;}
+        .hint {margin-top:1.25rem;font-size:.875rem;color:#6b7280;}
+        noscript {color:#b91c1c;font-weight:600;}
+    </style>
+</head>
+<body class="h-full">
+<div class="center" id="app-loading">
+    <div class="spinner"></div>
+    <h1>Memuat Aplikasi RT...</h1>
+    <p>Harap tunggu sebentar. Jika tidak otomatis lanjut, klik tombol di bawah.</p>
+    <a class="primary" href="/index.php">Masuk ke Aplikasi</a>
+    <p class="hint">Pastikan server PHP & Laravel sudah berjalan. File ini hanya fallback statis.</p>
+    <noscript>Aktifkan JavaScript untuk pengalaman penuh aplikasi.</noscript>
+</div>
+
+<script>
+// Tujuan file ini:
+// 1. Memberi halaman statis awal ketika hosting memerlukan index.html (mis: shared hosting)
+// 2. Mencoba memuat aset Vite build jika tersedia, lalu menginisialisasi aplikasi SPA Anda (jika front-end SPA)
+// 3. Jika backend Laravel diperlukan untuk route, user dapat klik tombol atau otomatis redirect
+
+(function() {
+    // Cek apakah environment mendukung PHP front controller. Umumnya jika file index.php bisa diakses.
+    // Opsi: otomatis redirect setelah sedikit delay.
+    const AUTO_REDIRECT_MS = 1200; // 1.2 detik
+    setTimeout(function() {
+        // Redirect halus ke Laravel index.php agar routing server-side berjalan.
+        window.location.replace('/index.php');
+    }, AUTO_REDIRECT_MS);
+
+    // Opsional: Jika Anda punya file manifest build Vite (public/build/manifest.json) dan ingin memuat CSS/JS secara dinamis.
+    // Karena kita tidak punya nama hash di repo saat runtime, kita lakukan fetch jika tersedia.
+    fetch('/build/manifest.json')
+        .then(r => r.ok ? r.json() : null)
+        .then(man => {
+            if(!man) return; // Tidak ada build
+            // Cari entry untuk resources/js/app.js (default laravel)
+            const entry = Object.values(man).find(o => o.isEntry) || man['resources/js/app.js'];
+            if(entry) {
+                if(entry.css) {
+                    entry.css.forEach(href => {
+                        const l = document.createElement('link');
+                        l.rel = 'stylesheet';
+                        l.href = href.startsWith('/') ? href : ('/build/' + href);
+                        document.head.appendChild(l);
+                    });
+                }
+                const s = document.createElement('script');
+                s.type = 'module';
+                s.src = entry.file.startsWith('/') ? entry.file : ('/build/' + entry.file);
+                document.body.appendChild(s);
+            }
+        })
+        .catch(()=>{});
+})();
+</script>
+</body>
+</html>
