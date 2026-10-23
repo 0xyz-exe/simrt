@@ -1,5 +1,24 @@
 # 🏠 SIMRT - Sistem Informasi Manajemen RT
 
+Repository: https://github.com/0xyz-exe/simrt
+
+## Screenshots
+
+### Dashboard Statistik & Analitik Komunitas RT
+![Dashboard SIMRT](docs/screenshots/01_dashboard.png)
+
+### Manajemen Data Kependudukan & Warga
+![Data Kependudukan](docs/screenshots/02_residents.png)
+
+### Transparansi Keuangan & Iuran Bulanan
+![Keuangan RT](docs/screenshots/03_finances.png)
+
+### Direktori Bisnis & UMKM Warga
+![Direktori UMKM](docs/screenshots/04_umkm_directory.png)
+
+### Layanan Pengajuan Surat Pengantar Digital
+![Layanan Surat](docs/screenshots/05_surat_pengantar.png)
+
 <div align="center">
   
   [![Laravel](https://img.shields.io/badge/Laravel-11.x-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
